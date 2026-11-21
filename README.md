@@ -11,6 +11,14 @@ Kurulum, ayrıca .NET yüklemesi veya Cheat Engine gerektirmez.
 · [Tüm sürümler](https://github.com/sametyamanxx/MafiaDE/releases)
 · [Kaynak kod](https://github.com/sametyamanxx/MafiaDE)
 
+### v1.0.1 — Insert düzeltmesi
+
+Insert artık Windows global kısayolu olarak kaydedilir. Pencere oyunun arkasında
+görünür durumdaysa gizlenmek yerine geri getirilip öne alınır. Gizli başlangıç,
+küçültülmüş pencere ve basılı tutulan tuş durumları da ele alındı.
+EXE'yi yeniden çalıştırmak mevcut pencereyi gösterir.
+[Değişiklikler](CHANGELOG.md)
+
 > **Durum:** EXE ve bellek imzaları doğrulandı; x64 kodu sentetik verilerle
 > test edildi. Sağlık ve mühimmat seçeneklerinin gerçek oyun içi etkisi henüz
 > test edilmedi. Yalnızca aşağıdaki desteklenen oyun sürümünde etkinleştirilir.
@@ -43,6 +51,8 @@ Kurulum, ayrıca .NET yüklemesi veya Cheat Engine gerektirmez.
 5. **F2:** sınırsız sağlık aç / kapat (sağlık okunduğunda maksimum değere tamamlanır).
 
 F1/F2 yalnızca oyun veya MafiaDE ön plandayken işlenir. Insert globaldir.
+MafiaDE ön plandayken Insert gizler; oyun veya başka uygulama ön plandayken
+Insert pencereyi gösterir ve etkinleştirir.
 Küçült düğmesi sistem tepsisine gizler; kırmızı çarpı uygulamadan çıkar ve
 uygulanan kod yamalarını geri alır. Sistem tepsisindeki ikona çift tıklayarak
 veya sağ tık menüsünden de pencereyi açabilirsin.
@@ -53,6 +63,20 @@ Oyun yönetici olarak çalışıyorsa MafiaDE'yi de yönetici olarak çalıştı
 Başka trainer / Cheat Engine yamalarını aynı anda kullanma.
 Tam ekranın üstünde görünmüyorsa oyunu kenarlıksız pencere moduna al.
 Bu bir masaüstü penceresidir, oyun içine enjekte edilen görsel overlay değildir.
+
+### Insert ile açılmıyorsa
+
+1. Sistem tepsisinden **eski MafiaDE sürümünü tamamen kapat**; ardından yeni EXE'yi aç.
+2. Oyunun görüntü modunu **Kenarlıksız Pencere / Borderless** olarak ayarla.
+   Exclusive tam ekran yüzeyinin üzerine masaüstü penceresi çizilmesi garanti edilmez;
+   pencere etkinleşince oyun masaüstüne dönebilir.
+3. Oyun yönetici olarak açıksa MafiaDE'yi de aynı yetkiyle çalıştır.
+4. Pencereye yine erişemiyorsan `MafiaDE.exe` dosyasını yeniden çalıştır:
+   ikinci bir kopya açmak yerine mevcut pencereyi gösterir.
+
+Insert başka bir uygulama tarafından kaydedilmişse çıkış günlüğünde belirtilir
+ve eski tuş algılama yöntemi yedek olarak kullanılır. Mümkünse çakışan kısayolu
+diğer uygulamada kapat.
 
 ## Destek ve doğrulama durumu
 
@@ -101,6 +125,17 @@ Test:
 Start-Process .\portable\MafiaDE.exe -ArgumentList '--self-test --test-report test-results.txt' -Wait
 Get-Content .\test-results.txt
 ```
+
+Pencere ve global kısayol regresyon testleri:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Hotkeys.ps1
+```
+
+Bu test, geçici bir kenarlıksız tam ekran test penceresi açar; arka planda kalmış,
+gizli ve küçültülmüş pencereyi, tuş tekrarını, ikinci başlatmayı ve kısayol
+çakışmasındaki yedek algılamayı kontrol eder. Gerçek oyunun exclusive tam ekran
+modunu veya oyun içi hile etkilerini doğrulamaz.
 
 ## Kaynak notu
 

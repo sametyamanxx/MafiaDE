@@ -12,6 +12,7 @@ public static class DesktopTest {
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rect);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern void keybd_event(byte key, byte scan, uint flags, UIntPtr extra);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window, uint message, IntPtr wp, IntPtr lp);
     public struct Rect { public int Left, Top, Right, Bottom; }
@@ -26,7 +27,16 @@ try {
     if ($window -eq [IntPtr]::Zero) { throw 'Window not found.' }
     if ($process.MainWindowTitle -ne 'MafiaDE') { throw 'Wrong program name.' }
     if (![DesktopTest]::IsWindowVisible($window)) { throw 'Initial window is hidden.' }
+    # The foreground-aware toggle hides only an active trainer. Windows may deny
+    # a background test runner's initial focus request without user input.
+    [DesktopTest]::keybd_event(0x12, 0x38, 0, [UIntPtr]::Zero)
+    [DesktopTest]::keybd_event(0x12, 0x38, 2, [UIntPtr]::Zero)
     [DesktopTest]::SetForegroundWindow($window) | Out-Null
+    $deadline = [DateTime]::UtcNow.AddSeconds(5)
+    while ([DesktopTest]::GetForegroundWindow() -ne $window -and [DateTime]::UtcNow -lt $deadline) {
+        Start-Sleep -Milliseconds 30
+    }
+    if ([DesktopTest]::GetForegroundWindow() -ne $window) { throw 'Trainer did not receive test focus.' }
     $rect = New-Object DesktopTest+Rect
     [DesktopTest]::GetWindowRect($window, [ref]$rect) | Out-Null
     $bitmap = New-Object Drawing.Bitmap(($rect.Right - $rect.Left), ($rect.Bottom - $rect.Top))

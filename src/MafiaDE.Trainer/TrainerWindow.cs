@@ -5,6 +5,9 @@ namespace MafiaDE.Trainer;
 
 internal sealed class TrainerWindow : Form
 {
+    private const int InsertHotkeyId = 0x4D44;
+    private const int WmHotkey = 0x0312;
+    private bool insertRegistered;
     private readonly TrainerEngine engine = new();
     private readonly FeatureButton ammo;
     private readonly FeatureButton health;
@@ -23,7 +26,7 @@ internal sealed class TrainerWindow : Form
     private readonly bool[] keyDown = new bool[3];
     private string status = "Oyun bekleniyor";
     private string statusDetail = "Mafia DE açılınca otomatik bağlanır.";
-    private bool connecting, closeRequested, closing;
+    private bool connecting, closeRequested, closing, startupInitialized, showRequested;
     private bool statusError;
     private string? lastError;
     private Rectangle minimizeBounds, closeBounds;
@@ -71,11 +74,44 @@ internal sealed class TrainerWindow : Form
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        if (startupInitialized) return;
+        startupInitialized = true;
         PositionControls();
         keyTimer.Start();
         connectionTimer.Start();
-        if (startHidden) Hide();
+        if (startHidden && !showRequested) Hide();
         await UpdateConnection();
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        // WM_HOTKEY is delivered even when a game owns keyboard focus.
+        // MOD_NOREPEAT prevents a held Insert key from repeatedly toggling.
+        insertRegistered = Native.RegisterHotKey(Handle, InsertHotkeyId, 0x4000, 0x2D);
+        AddLog(insertRegistered
+            ? "Insert: Windows global kısayolu hazır."
+            : "Insert başka uygulamada; yedek tuş algılama etkin.");
+    }
+
+    protected override void OnHandleDestroyed(EventArgs e)
+    {
+        if (insertRegistered)
+        {
+            Native.UnregisterHotKey(Handle, InsertHotkeyId);
+            insertRegistered = false;
+        }
+        base.OnHandleDestroyed(e);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WmHotkey && m.WParam == InsertHotkeyId && !closing)
+        {
+            ToggleVisibility();
+            return;
+        }
+        base.WndProc(ref m);
     }
 
     protected override void OnDpiChanged(DpiChangedEventArgs e)
@@ -104,8 +140,30 @@ internal sealed class TrainerWindow : Form
 
     private void ToggleVisibility()
     {
-        if (Visible && WindowState != FormWindowState.Minimized) Hide();
-        else { WindowState = FormWindowState.Normal; Show(); Activate(); }
+        if (WindowVisibility.ShouldHide(Visible, WindowState == FormWindowState.Minimized,
+                Native.GetForegroundWindow() == Handle))
+            Hide();
+        else
+            ShowFromShortcut();
+    }
+
+    internal void ShowFromShortcut()
+    {
+        if (closing || IsDisposed) return;
+        showRequested = true;
+        WindowState = FormWindowState.Normal;
+        if (!Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(Bounds)))
+        {
+            Rectangle area = Screen.FromPoint(Cursor.Position).WorkingArea;
+            Location = new Point(area.Left + (area.Width - Width) / 2,
+                area.Top + (area.Height - Height) / 2);
+        }
+        Show();
+        Native.ShowWindow(Handle, 9); // SW_RESTORE, including external minimization
+        Native.SetWindowPos(Handle, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040);
+        BringToFront();
+        Native.SetForegroundWindow(Handle);
+        Activate();
     }
 
     private void CheckKeys()
@@ -113,6 +171,9 @@ internal sealed class TrainerWindow : Form
         int[] keys = [0x2D, 0x70, 0x71];
         for (int i = 0; i < keys.Length; i++)
         {
+            // Never process Insert through both WM_HOTKEY and polling: doing so
+            // would immediately hide the window again on the same physical press.
+            if (i == 0 && insertRegistered) continue;
             bool down = (Native.GetAsyncKeyState(keys[i]) & 0x8000) != 0;
             bool pressed = down && !keyDown[i];
             keyDown[i] = down;
@@ -252,7 +313,7 @@ internal sealed class TrainerWindow : Form
         for (int i = first; i < last; i++)
             Theme.DrawText(g, logs[i], smallFont, Theme.Muted, R(36, 336 + (i - first) * 14, 428, 16));
         Theme.DrawText(g, "INSERT · GÖSTER / GİZLE", tinyFont, Theme.Muted, R(24, 428, 255, 13));
-        Theme.DrawText(g, "v1.0", tinyFont, Theme.Muted, R(439, 428, 36, 13), TextFormatFlags.Right);
+        Theme.DrawText(g, "v1.0.1", tinyFont, Theme.Muted, R(426, 428, 49, 13), TextFormatFlags.Right);
     }
 
     private void PaintWindowButton(Graphics g, Rectangle bounds, bool close)

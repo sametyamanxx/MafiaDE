@@ -18,6 +18,14 @@ internal static class SelfTests
         int exit = 0;
         try
         {
+            foreach (bool visible in new[] { false, true })
+                foreach (bool minimized in new[] { false, true })
+                    foreach (bool foreground in new[] { false, true })
+                        Assert(WindowVisibility.ShouldHide(visible, minimized, foreground) ==
+                            (visible && !minimized && foreground),
+                            $"Insert visibility: visible={visible}, minimized={minimized}, foreground={foreground}", results);
+            Assert(!WindowVisibility.ShouldHide(true, false, false),
+                "Insert: covered visible window must be brought forward, not hidden", results);
             Assert(FeatureDefinition.Find([1, 2, 1, 2, 1], [1, 2, 1]).SequenceEqual([0, 2]),
                 "Overlapping signature matches", results);
             Assert(!FeatureDefinition.Find([1], [1, 2]).Any(), "Short buffers", results);

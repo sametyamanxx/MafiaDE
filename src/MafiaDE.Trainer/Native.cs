@@ -44,6 +44,19 @@ internal static class Native
     public static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll")]
     public static extern nint GetForegroundWindow();
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool RegisterHotKey(nint window, int id, uint modifiers, uint key);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool UnregisterHotKey(nint window, int id);
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(nint window, int command);
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(nint window);
+    [DllImport("user32.dll")]
+    public static extern bool AllowSetForegroundWindow(int processId);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetWindowPos(nint window, nint insertAfter,
+        int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(nint window, out int processId);
     [DllImport("user32.dll")]
