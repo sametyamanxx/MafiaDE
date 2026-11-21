@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+portable/
+*.user
+*.pdb
+*.log
+test-results*.txt
+.vs/
+.idea/
+.env
+.env.*
